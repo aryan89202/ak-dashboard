@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AK Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F7F5;
+    --surface: #FFFFFF;
+    --border: #E5E5E2;
+    --border-light: #EFEFEC;
+    --text: #1A1A1A;
+    --text-secondary: #6B6B68;
+    --text-muted: #9B9B98;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --green: #27500A;
+    --green-bg: #EAF3DE;
+    --blue: #0C447C;
+    --blue-bg: #E6F1FB;
+    --purple: #3C3489;
+    --purple-bg: #EEEDFE;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px 32px;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    margin-bottom: 2px;
+  }
+
+  .header-left p {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .refresh-btn:hover { background: var(--border-light); color: var(--text); }
+  .refresh-btn.loading { opacity: 0.6; pointer-events: none; }
+
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 0.5px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .panel-icon { font-size: 15px; }
+
+  .panel-open {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: color 0.15s;
+  }
+  .panel-open:hover { color: var(--text); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 0.5px solid var(--border-light);
+  }
+
+  .stat {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+    font-weight: 500;
+  }
+
+  .stat-val {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    line-height: 1;
+  }
+
+  .stat-val.red { color: var(--red); }
+  .stat-val.amber { color: var(--amber); }
+  .stat-val.green { color: var(--green); }
+
+  .job-list { padding: 8px 12px 12px; }
+
+  .list-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 7px;
+  }
+
+  .job-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 0;
+    border-bottom: 0.5px solid var(--border-light);
+  }
+  .job-row:last-child { border-bottom: none; }
+
+  .job-name {
+    font-size: 12px;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 99px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge-charity { background: var(--purple-bg); color: var(--purple); }
+  .badge-ltd { background: var(--green-bg); color: var(--green); }
+  .badge-cic { background: var(--amber-bg); color: var(--amber); }
+  .badge-internal { background: var(--bg); color: var(--text-secondary); border: 0.5px solid var(--border); }
+  .badge-client { background: var(--amber-bg); color: var(--amber); }
+  .badge-manager { background: var(--blue-bg); color: var(--blue); }
+  .badge-complete { background: var(--green-bg); color: var(--green); }
+
+  .dl {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .dl-red { color: var(--red); font-weight: 500; }
+  .dl-amber { color: var(--amber); font-weight: 500; }
+  .dl-ok { color: var(--text-muted); }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-red { background: var(--red); }
+  .dot-amber { background: var(--amber); }
+  .dot-green { background: #639922; }
+
+  .focus-bar {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .focus-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .focus-cta {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .focus-cta:hover { background: var(--border-light); }
+
+  .error-msg {
+    font-size: 12px;
+    color: var(--red);
+    padding: 6px 12px 10px;
+    display: none;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--border-light) 25%, var(--bg) 50%, var(--border-light) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 4px;
+    height: 14px;
+    width: 80%;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  .last-updated {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Dashboard</h1>
+    <p id="subtitle">Loading live data from Notion...</p>
+  </div>
+  <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">
+    <span id="refreshIcon">↻</span> Refresh
+  </button>
+</div>
+
+<div class="panels">
+
+  <!-- Annual Accounts -->
+  <div class="panel" id="panel-aa">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="panel-icon">🏢</span> Annual accounts
+      </div>
+      <a class="panel-open" href="https://www.notion.so/cf0e357b5bc74ff38b8515e1d48f0ec0" target="_blank">Open ↗</a>
+    </div>
+    <div class="stats" id="stats-aa">
+      <div class="stat"><div class="stat-label">Live jobs</div><div class="stat-val" id="aa-live">—</div></div>
+      <div class="stat"><div class="stat-label">Overdue</div><div class="stat-val red" id="aa-overdue">—</div></div>
+      <div class="stat"><div class="stat-label">Awaiting client</div><div class="stat-val amber" id="aa-client">—</div></div>
+      <div class="stat"><div class="stat-label">Awaiting manager</div><div class="stat-val amber" id="aa-manager">—</div></div>
+    </div>
+    <div class="job-list">
+      <div class="list-label">Needs attention</div>
+      <div id="aa-jobs"><div class="skeleton" style="margin:8px 0"></div><div class="skeleton" style="margin:8px 0; width:60%"></div></div>
+    </div>
+  </div>
+
+  <!-- Personal Tax -->
+  <div class="panel" id="panel-pt">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="panel-icon">📝</span> Personal tax
+      </div>
+      <a class="panel-open" href="https://www.notion.so/d805cf6c45e7493cacbcd8a171151c55" target="_blank">Open ↗</a>
+    </div>
+    <div class="stats" id="stats-pt">
+      <div class="stat"><div class="stat-label">Live jobs</div><div class="stat-val" id="pt-live">—</div></div>
+      <div class="stat"><div class="stat-label">Overdue</div><div class="stat-val red" id="pt-overdue">—</div></div>
+      <div class="stat"><div class="stat-label">Due soon</div><div class="stat-val amber" id="pt-soon">—</div></div>
+      <div class="stat"><div class="stat-label">On track</div><div class="stat-val green" id="pt-ok">—</div></div>
+    </div>
+    <div class="job-list">
+      <div class="list-label">All active</div>
+      <div id="pt-jobs"><div class="skeleton" style="margin:8px 0"></div><div class="skeleton" style="margin:8px 0; width:60%"></div></div>
+    </div>
+  </div>
+
+  <!-- Management Clients -->
+  <div class="panel" id="panel-mc">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="panel-icon">📋</span> Management clients
+      </div>
+      <a class="panel-open" href="https://www.notion.so/036b171d87b941b79ae72f2488c7d3fe" target="_blank">Open ↗</a>
+    </div>
+    <div class="stats" id="stats-mc">
+      <div class="stat"><div class="stat-label">Active clients</div><div class="stat-val" id="mc-total">—</div></div>
+      <div class="stat"><div class="stat-label">Action needed</div><div class="stat-val amber" id="mc-action">—</div></div>
+      <div class="stat"><div class="stat-label">Target: 15th</div><div class="stat-val" id="mc-15">—</div></div>
+      <div class="stat"><div class="stat-label">Target: 20th</div><div class="stat-val" id="mc-20">—</div></div>
+    </div>
+    <div class="job-list">
+      <div class="list-label">This month</div>
+      <div id="mc-jobs"><div class="skeleton" style="margin:8px 0"></div><div class="skeleton" style="margin:8px 0; width:60%"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="focus-bar">
+  <span class="focus-text">⚡ Ask Claude for a prioritised focus list based on your live data</span>
+  <a class="focus-cta" href="https://claude.ai" target="_blank">Open Claude ↗</a>
+</div>
+
+<script>
+const TOKEN = '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';
+const PROXY = 'https://api.allorigins.win/raw?url=';
+
+const DB_AA = 'cf0e357b-5bc7-4ff3-8b85-15e1d48f0ec0';
+const DB_PT = 'd805cf6c-45e7-493c-acbc-d8a171151c55';
+const DB_MC = '036b171d-87b9-41b7-9ae7-2f2488c7d3fe';
+
+async function queryDB(dbId, filter) {
+  const url = `https://api.notion.com/v1/databases/${dbId}/query`;
+  const body = filter ? JSON.stringify({ filter }) : '{}';
+  const res = await fetch(PROXY + encodeURIComponent(url), {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${TOKEN}`,
+      'Notion-Version': '2022-06-28',
+      'Content-Type': 'application/json'
+    },
+    body
+  });
+  return res.json();
+}
+
+function getTitle(page) {
+  const t = page.properties['Client'] || page.properties['Title'];
+  if (!t) return 'Untitled';
+  if (t.title) return t.title.map(r => r.plain_text).join('') || 'Untitled';
+  return 'Untitled';
+}
+
+function getProp(page, key, type) {
+  const p = page.properties[key];
+  if (!p) return null;
+  if (type === 'select') return p.select?.name || null;
+  if (type === 'date') return p.date?.start || null;
+  if (type === 'text') return p.rich_text?.map(r => r.plain_text).join('') || null;
+  if (type === 'formula') return p.formula?.string || null;
+  return null;
+}
+
+function isOverdue(page) {
+  const ds = getProp(page, 'Deadline status', 'formula');
+  return ds && ds.includes('🔴');
+}
+
+function isDueSoon(page) {
+  const ds = getProp(page, 'Deadline status', 'formula');
+  return ds && ds.includes('🟠');
+}
+
+function stageClass(stage) {
+  if (!stage) return 'badge-internal';
+  const n = parseInt(stage);
+  if ([1,5,8,9].includes(n)) return 'badge-client';
+  if ([4,7].includes(n)) return 'badge-manager';
+  if (stage.includes('9a')) return 'badge-complete';
+  return 'badge-internal';
+}
+
+function shortStage(stage) {
+  if (!stage) return '—';
+  return stage.length > 16 ? stage.substring(0, 16) + '…' : stage;
+}
+
+function typeClass(type) {
+  if (!type) return 'badge-internal';
+  if (type.includes('Charity')) return 'badge-charity';
+  if (type.includes('Ltd')) return 'badge-ltd';
+  if (type.includes('CIC')) return 'badge-cic';
+  return 'badge-internal';
+}
+
+function dlClass(page, dateKey) {
+  const d = getProp(page, dateKey, 'date');
+  if (!d) return 'dl-ok';
+  const diff = (new Date(d) - new Date()) / 86400000;
+  if (diff < 0) return 'dl-red';
+  if (diff <= 14) return 'dl-amber';
+  return 'dl-ok';
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function dotClass(status) {
+  if (!status) return 'dot-amber';
+  const s = status.toLowerCase();
+  if (s.includes('complete') || s.includes('sent') || s.includes('done')) return 'dot-green';
+  if (s.includes('no') || s.includes('not yet') || s.includes('no response')) return 'dot-red';
+  return 'dot-amber';
+}
+
+async function loadAA() {
+  try {
+    const data = await queryDB(DB_AA, {
+      property: 'Completed', checkbox: { equals: false }
+    });
+    const pages = data.results || [];
+    document.getElementById('aa-live').textContent = pages.length;
+    const overdue = pages.filter(isOverdue);
+    const awClient = pages.filter(p => {
+      const s = getProp(p, 'Stage', 'select') || '';
+      return s.includes('client') || s.includes('signing');
+    });
+    const awManager = pages.filter(p => {
+      const s = getProp(p, 'Stage', 'select') || '';
+      return s.includes('manager');
+    });
+    document.getElementById('aa-overdue').textContent = overdue.length;
+    document.getElementById('aa-client').textContent = awClient.length;
+    document.getElementById('aa-manager').textContent = awManager.length;
+
+    const attention = pages
+      .filter(p => isOverdue(p) || isDueSoon(p))
+      .sort((a,b) => {
+        const da = getProp(a, 'Internal deadline', 'date') || '9999';
+        const db = getProp(b, 'Internal deadline', 'date') || '9999';
+        return da.localeCompare(db);
+      })
+      .slice(0, 5);
+
+    const allSorted = [...attention, ...pages.filter(p => !isOverdue(p) && !isDueSoon(p))].slice(0, 5);
+
+    document.getElementById('aa-jobs').innerHTML = allSorted.length ? allSorted.map(p => {
+      const name = getTitle(p);
+      const type = getProp(p, 'Job Type', 'select');
+      const stage = getProp(p, 'Stage', 'select');
+      const dl = getProp(p, 'Internal deadline', 'date');
+      const dlCls = isOverdue(p) ? 'dl-red' : isDueSoon(p) ? 'dl-amber' : 'dl-ok';
+      return `<div class="job-row">
+        <span class="job-name">${name}</span>
+        <span class="badge ${typeClass(type)}">${type ? type.split(' ').slice(0,2).join(' ') : '—'}</span>
+        <span class="dl ${dlCls}">${fmtDate(dl)}</span>
+      </div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No active jobs</div>';
+  } catch(e) {
+    document.getElementById('aa-jobs').innerHTML = '<div class="error-msg" style="display:block">Failed to load</div>';
+  }
+}
+
+async function loadPT() {
+  try {
+    const data = await queryDB(DB_PT, {
+      property: 'Completed', checkbox: { equals: false }
+    });
+    const pages = data.results || [];
+    document.getElementById('pt-live').textContent = pages.length;
+    const overdue = pages.filter(isOverdue).length;
+    const soon = pages.filter(isDueSoon).length;
+    const ok = pages.length - overdue - soon;
+    document.getElementById('pt-overdue').textContent = overdue;
+    document.getElementById('pt-soon').textContent = soon;
+    document.getElementById('pt-ok').textContent = Math.max(0, ok);
+
+    document.getElementById('pt-jobs').innerHTML = pages.length ? pages.slice(0,6).map(p => {
+      const name = getTitle(p);
+      const stage = getProp(p, 'Stage', 'select');
+      const dl = getProp(p, 'HMRC deadline', 'date');
+      const dlCls = isOverdue(p) ? 'dl-red' : isDueSoon(p) ? 'dl-amber' : 'dl-ok';
+      return `<div class="job-row">
+        <span class="job-name">${name}</span>
+        <span class="badge ${stageClass(stage)}">${stage ? stage.split('·')[0].trim() : '—'}</span>
+        <span class="dl ${dlCls}">${fmtDate(dl)}</span>
+      </div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No active jobs</div>';
+  } catch(e) {
+    document.getElementById('pt-jobs').innerHTML = '<div class="error-msg" style="display:block">Failed to load</div>';
+  }
+}
+
+async function loadMC() {
+  try {
+    const data = await queryDB(DB_MC);
+    const pages = (data.results || []).filter(p => {
+      const client = getTitle(p);
+      return client && client !== 'Untitled' && !client.includes('Meeting') && !client.includes('Background') && !client.includes('CLIENT');
+    });
+    document.getElementById('mc-total').textContent = pages.length;
+    const action = pages.filter(p => {
+      const s = (getProp(p, 'Current status', 'text') || '').toLowerCase();
+      return s.includes('awaiting') || s.includes('no response') || s.includes('not yet') || s.includes('chase');
+    }).length;
+    const t15 = pages.filter(p => getProp(p, 'Target date', 'select') === '15th').length;
+    const t20 = pages.filter(p => getProp(p, 'Target date', 'select') === '20th').length;
+    document.getElementById('mc-action').textContent = action;
+    document.getElementById('mc-15').textContent = t15;
+    document.getElementById('mc-20').textContent = t20;
+
+    document.getElementById('mc-jobs').innerHTML = pages.length ? pages.slice(0,6).map(p => {
+      const name = getTitle(p);
+      const status = getProp(p, 'Current status', 'text') || '—';
+      const target = getProp(p, 'Target date', 'select') || '—';
+      const short = status.length > 22 ? status.substring(0,22) + '…' : status;
+      return `<div class="job-row">
+        <span class="job-name">${name}</span>
+        <span class="job-name" style="color:var(--text-secondary);font-size:11px;flex:1.5"><span class="dot ${dotClass(status)}" style="display:inline-block;margin-right:4px;vertical-align:middle"></span>${short}</span>
+        <span class="dl dl-ok">${target}</span>
+      </div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No clients</div>';
+  } catch(e) {
+    document.getElementById('mc-jobs').innerHTML = '<div class="error-msg" style="display:block">Failed to load</div>';
+  }
+}
+
+async function loadAll() {
+  const btn = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  btn.classList.add('loading');
+  icon.classList.add('spin');
+  icon.textContent = '↻';
+
+  await Promise.all([loadAA(), loadPT(), loadMC()]);
+
+  const now = new Date();
+  document.getElementById('subtitle').textContent =
+    `Last updated ${now.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'})} at ${now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})}`;
+
+  btn.classList.remove('loading');
+  icon.classList.remove('spin');
+}
+
+loadAll();
+</script>
+</body>
+</html>
